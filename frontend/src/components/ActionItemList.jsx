@@ -1,8 +1,9 @@
 import { useState } from 'react'
 
-function ActionItemList({ items, onUpdate }) {
+function ActionItemList({ items, onUpdate, meetingId }) {
   const [editingId, setEditingId] = useState(null)
   const [editText, setEditText] = useState('')
+  const [reminding, setReminding] = useState(null)
 
   const handleStatusToggle = (item) => {
     const newStatus = item.status === 'pending' ? 'done' : 'pending'
@@ -31,6 +32,29 @@ function ActionItemList({ items, onUpdate }) {
     if (e.key === 'Escape') handleEditCancel()
   }
 
+  const handleRemind = async (assignee) => {
+    if (!meetingId) return
+    setReminding(assignee)
+    try {
+      const res = await fetch(
+        `http://localhost:8000/meetings/${meetingId}/remind/${encodeURIComponent(assignee)}`,
+        { method: 'POST' }
+      )
+      if (!res.ok) {
+        const err = await res.json()
+        alert(err.detail)
+        return
+      }
+      const { subject, body } = await res.json()
+      const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+      window.location.href = mailtoLink
+    } catch (err) {
+      alert('Failed to generate reminder')
+    } finally {
+      setReminding(null)
+    }
+  }
+
   if (items.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
@@ -40,6 +64,12 @@ function ActionItemList({ items, onUpdate }) {
   }
 
   const doneCount = items.filter(i => i.status === 'done').length
+
+  const uniqueAssignees = [...new Set(
+    items
+      .filter(i => i.assignee && i.assignee !== 'null' && i.status === 'pending')
+      .map(i => i.assignee)
+  )]
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -104,11 +134,27 @@ function ActionItemList({ items, onUpdate }) {
                 </p>
               )}
 
-              {item.assignee && item.assignee !== 'null' && editingId !== item.id && (
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Assigned to {item.assignee}
-                </p>
-              )}
+            {item.assignee && item.assignee !== 'null' && editingId !== item.id && (
+                <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-xs text-gray-400">
+                    {item.assignee}
+                    </p>
+                    {item.status === 'pending' && meetingId && (
+                    <button
+                        onClick={() => handleRemind(item.assignee)}
+                        disabled={reminding === item.assignee}
+                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-50"
+                    >
+                        {reminding === item.assignee ? (
+                        <span className="w-2.5 h-2.5 border border-blue-400 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                        <span>✉</span>
+                        )}
+                        <span>Remind</span>
+                    </button>
+                    )}
+                </div>
+            )}
             </div>
           </li>
         ))}

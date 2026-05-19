@@ -7,6 +7,7 @@ from models.schemas import MeetingCreate, ProcessResponse, ActionItem
 from agents.extractor import run_extractor
 from agents.email_drafter import run_email_drafter
 from agents.summarizer import run_summarizer
+from agents.reminder_drafter import run_reminder_drafter
 import json
 
 app = FastAPI(title="Meeting Summarizer API")
@@ -86,3 +87,32 @@ def update_action_item(item_id: int, text: str = None, status: str = None, db: S
         "assignee": item.assignee,
         "status": item.status
     }
+
+@app.post("/meetings/{meeting_id}/remind/{assignee}")
+def send_reminder(meeting_id: int, assignee: str, db: Session = Depends(get_db)):
+    items = queries.get_action_items_by_meeting(db, meeting_id)
+    
+    assignee_items = [
+        {"text": item.text}
+        for item in items
+        if item.assignee and item.assignee.lower() == assignee.lower()
+        and item.status == "pending"
+    ]
+    
+    if not assignee_items:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No pending action items found for {assignee}"
+        )
+    
+    meeting = queries.get_meeting_by_id(db, meeting_id)
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    email = run_reminder_drafter(
+        assignee=assignee,
+        action_items=assignee_items,
+        meeting_title=meeting.title
+    )
+    
+    return email

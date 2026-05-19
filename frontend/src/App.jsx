@@ -177,6 +177,7 @@ function App() {
               <ActionItemList
                 items={actionItems}
                 onUpdate={handleActionItemUpdate}
+                meetingId={meetingData?.id}
               />
 
               {emailDraft && (
