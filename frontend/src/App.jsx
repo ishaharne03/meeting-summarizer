@@ -1,121 +1,139 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useEffect } from 'react'
+import UploadBox from './components/UploadBox'
+import ActionItemList from './components/ActionItemList'
+import EmailPreview from './components/EmailPreview'
+import MeetingHistory from './components/MeetingHistory'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [appState, setAppState] = useState('idle')
+  const [meetingData, setMeetingData] = useState(null)
+  const [actionItems, setActionItems] = useState([])
+  const [emailDraft, setEmailDraft] = useState(null)
+  const [meetings, setMeetings] = useState([])
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    fetchMeetings()
+  }, [])
+
+  const fetchMeetings = async () => {
+    try {
+      const res = await fetch('http://localhost:8000/meetings')
+      const data = await res.json()
+      setMeetings(data)
+    } catch (err) {
+      console.error('Failed to fetch meetings:', err)
+    }
+  }
+
+  const handleTranscriptSubmit = async (transcript) => {
+    setAppState('loading')
+    setError(null)
+    try {
+      const res = await fetch('http://localhost:8000/meetings/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript })
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail)
+      }
+      const data = await res.json()
+      setMeetingData(data.meeting)
+      setActionItems(data.action_items)
+      setEmailDraft(data.email_draft)
+      setAppState('done')
+      fetchMeetings()
+    } catch (err) {
+      setError(err.message)
+      setAppState('idle')
+    }
+  }
+
+  const handleActionItemUpdate = async (id, updates) => {
+    try {
+      const params = new URLSearchParams(updates).toString()
+      const res = await fetch(`http://localhost:8000/action-items/${id}?${params}`, {
+        method: 'PATCH',
+      })
+      const updated = await res.json()
+      setActionItems(prev =>
+        prev.map(item => item.id === updated.id ? updated : item)
+      )
+    } catch (err) {
+      console.error('Failed to update action item:', err)
+    }
+  }
+
+  const handleMeetingSelect = async (meeting) => {
+    setMeetingData(meeting)
+    setActionItems(meeting.action_items)
+    setEmailDraft(null)
+    setAppState('done')
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white border-b border-gray-200 px-6 py-4">
+        <h1 className="text-xl font-semibold text-gray-800">Meeting Summarizer</h1>
+        <p className="text-sm text-gray-500">Upload a transcript to extract action items</p>
+      </header>
 
-      <div className="ticks"></div>
+      <div className="flex h-[calc(100vh-73px)]">
+        <aside className="w-64 bg-white border-r border-gray-200 overflow-y-auto">
+          <MeetingHistory
+            meetings={meetings}
+            onSelect={handleMeetingSelect}
+            activeMeetingId={meetingData?.id}
+          />
+        </aside>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        <main className="flex-1 overflow-y-auto p-6">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {error}
+            </div>
+          )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+          {appState === 'idle' && (
+            <UploadBox onSubmit={handleTranscriptSubmit} />
+          )}
+
+          {appState === 'loading' && (
+            <div className="flex flex-col items-center justify-center h-64 gap-3">
+              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              <p className="text-gray-500 text-sm">Analyzing transcript...</p>
+            </div>
+          )}
+
+          {appState === 'done' && (
+            <div className="flex flex-col gap-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-800">
+                  {meetingData?.title}
+                </h2>
+                <button
+                  onClick={() => setAppState('idle')}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  + New meeting
+                </button>
+              </div>
+
+              <ActionItemList
+                items={actionItems}
+                onUpdate={handleActionItemUpdate}
+              />
+
+              {emailDraft && (
+                <EmailPreview draft={emailDraft} />
+              )}
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
   )
 }
 
