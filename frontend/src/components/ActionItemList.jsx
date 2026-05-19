@@ -104,7 +104,7 @@ function ActionItemList({ items, onUpdate }) {
                 </p>
               )}
 
-              {item.assignee && editingId !== item.id && (
+              {item.assignee && item.assignee !== 'null' && editingId !== item.id && (
                 <p className="text-xs text-gray-400 mt-0.5">
                   Assigned to {item.assignee}
                 </p>

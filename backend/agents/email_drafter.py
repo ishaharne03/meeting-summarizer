@@ -39,6 +39,7 @@ def run_email_drafter(action_items: list) -> dict:
         - List each action item clearly with the assignee
         - End with a call to action
         - Keep it under 200 words
+        - Do NOT use markdown formatting like **bold** — plain text only
 
         You MUST respond with ONLY a valid JSON object in exactly this format:
         {{
