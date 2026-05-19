@@ -3,6 +3,7 @@ import UploadBox from './components/UploadBox'
 import ActionItemList from './components/ActionItemList'
 import EmailPreview from './components/EmailPreview'
 import MeetingHistory from './components/MeetingHistory'
+import Toast from './components/Toast'
 
 function App() {
   const [appState, setAppState] = useState('idle')
@@ -11,10 +12,15 @@ function App() {
   const [emailDraft, setEmailDraft] = useState(null)
   const [meetings, setMeetings] = useState([])
   const [error, setError] = useState(null)
+  const [toast, setToast] = useState(null)
 
   useEffect(() => {
     fetchMeetings()
   }, [])
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type })
+  }
 
   const fetchMeetings = async () => {
     try {
@@ -45,9 +51,11 @@ function App() {
       setEmailDraft(data.email_draft)
       setAppState('done')
       fetchMeetings()
+      showToast('Meeting analysed successfully')
     } catch (err) {
       setError(err.message)
       setAppState('idle')
+      showToast(err.message, 'error')
     }
   }
 
@@ -61,12 +69,18 @@ function App() {
       setActionItems(prev =>
         prev.map(item => item.id === updated.id ? updated : item)
       )
+      if (updates.status) {
+        showToast(
+          updates.status === 'done' ? 'Marked as done' : 'Marked as pending',
+          'info'
+        )
+      }
     } catch (err) {
-      console.error('Failed to update action item:', err)
+      showToast('Failed to update item', 'error')
     }
   }
 
-  const handleMeetingSelect = async (meeting) => {
+  const handleMeetingSelect = (meeting) => {
     setMeetingData(meeting)
     setActionItems(meeting.action_items)
     setEmailDraft(null)
@@ -74,14 +88,30 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <h1 className="text-xl font-semibold text-gray-800">Meeting Summarizer</h1>
-        <p className="text-sm text-gray-500">Upload a transcript to extract action items</p>
+    <div className="min-h-screen bg-slate-50">
+
+      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold text-slate-800 tracking-tight">
+            Meeting Summarizer
+          </h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            AI-powered action items and follow-ups
+          </p>
+        </div>
+        {appState === 'done' && (
+          <button
+            onClick={() => setAppState('idle')}
+            className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
+          >
+            + New meeting
+          </button>
+        )}
       </header>
 
-      <div className="flex h-[calc(100vh-73px)]">
-        <aside className="w-64 bg-white border-r border-gray-200 overflow-y-auto">
+      <div className="flex h-[calc(100vh-65px)]">
+
+        <aside className="w-64 bg-white border-r border-slate-200 overflow-y-auto flex-shrink-0">
           <MeetingHistory
             meetings={meetings}
             onSelect={handleMeetingSelect}
@@ -90,35 +120,52 @@ function App() {
         </aside>
 
         <main className="flex-1 overflow-y-auto p-6">
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              {error}
-            </div>
-          )}
-
           {appState === 'idle' && (
             <UploadBox onSubmit={handleTranscriptSubmit} />
           )}
 
           {appState === 'loading' && (
-            <div className="flex flex-col items-center justify-center h-64 gap-3">
-              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              <p className="text-gray-500 text-sm">Analyzing transcript...</p>
+            <div className="max-w-2xl mx-auto flex flex-col gap-4">
+              <div className="h-5 w-48 bg-slate-200 rounded-lg animate-pulse" />
+              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-100">
+                  <div className="h-4 w-24 bg-slate-200 rounded animate-pulse" />
+                </div>
+                {[1,2,3].map(i => (
+                  <div key={i} className="px-4 py-3 flex items-center gap-3 border-b border-slate-100">
+                    <div className="w-5 h-5 rounded-full bg-slate-200 animate-pulse flex-shrink-0" />
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <div className="h-3.5 bg-slate-200 rounded animate-pulse" />
+                      <div className="h-3 w-20 bg-slate-100 rounded animate-pulse" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col gap-2">
+                <div className="h-4 w-20 bg-slate-200 rounded animate-pulse" />
+                <div className="h-3 bg-slate-100 rounded animate-pulse" />
+                <div className="h-3 w-3/4 bg-slate-100 rounded animate-pulse" />
+                <div className="h-3 bg-slate-100 rounded animate-pulse" />
+              </div>
+              <p className="text-center text-sm text-slate-400 animate-pulse">
+                Analysing transcript with AI...
+              </p>
             </div>
           )}
 
           {appState === 'done' && (
-            <div className="flex flex-col gap-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-800">
+            <div className="max-w-2xl mx-auto flex flex-col gap-5">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-800">
                   {meetingData?.title}
                 </h2>
-                <button
-                  onClick={() => setAppState('idle')}
-                  className="text-sm text-blue-600 hover:text-blue-800"
-                >
-                  + New meeting
-                </button>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {meetingData?.created_at
+                    ? new Date(meetingData.created_at).toLocaleDateString('en-US', {
+                        weekday: 'long', month: 'long', day: 'numeric'
+                      })
+                    : ''}
+                </p>
               </div>
 
               <ActionItemList
@@ -127,12 +174,23 @@ function App() {
               />
 
               {emailDraft && (
-                <EmailPreview draft={emailDraft} />
+                <EmailPreview
+                  draft={emailDraft}
+                  onCopy={() => showToast('Email copied to clipboard', 'success')}
+                />
               )}
             </div>
           )}
         </main>
       </div>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   )
 }
