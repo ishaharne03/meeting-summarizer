@@ -6,6 +6,7 @@ from db import queries
 from models.schemas import MeetingCreate, ProcessResponse, ActionItem
 from agents.extractor import run_extractor
 from agents.email_drafter import run_email_drafter
+from agents.summarizer import run_summarizer
 import json
 
 app = FastAPI(title="Meeting Summarizer API")
@@ -35,6 +36,8 @@ def process_meeting(meeting: MeetingCreate, db: Session = Depends(get_db)):
     action_items_data = result.get("action_items", [])
     title = result.get("title", "Untitled Meeting")
 
+    summary = run_summarizer(meeting.transcript)
+
     db_meeting = queries.create_meeting(db, title=title, transcript=meeting.transcript)
     db_items = queries.create_action_items(db, meeting_id=db_meeting.id, items=action_items_data)
 
@@ -46,6 +49,7 @@ def process_meeting(meeting: MeetingCreate, db: Session = Depends(get_db)):
             "title": db_meeting.title,
             "created_at": db_meeting.created_at.isoformat(),
         },
+        "summary": summary,
         "action_items": [
             {
                 "id": item.id,

@@ -3,6 +3,7 @@ import UploadBox from './components/UploadBox'
 import ActionItemList from './components/ActionItemList'
 import EmailPreview from './components/EmailPreview'
 import MeetingHistory from './components/MeetingHistory'
+import SummaryCard from './components/SummaryCard'
 import Toast from './components/Toast'
 
 function App() {
@@ -11,6 +12,7 @@ function App() {
   const [actionItems, setActionItems] = useState([])
   const [emailDraft, setEmailDraft] = useState(null)
   const [meetings, setMeetings] = useState([])
+  const [summary, setSummary] = useState(null)
   const [error, setError] = useState(null)
   const [toast, setToast] = useState(null)
 
@@ -49,6 +51,7 @@ function App() {
       setMeetingData(data.meeting)
       setActionItems(data.action_items)
       setEmailDraft(data.email_draft)
+      setSummary(data.summary)
       setAppState('done')
       fetchMeetings()
       showToast('Meeting analysed successfully')
@@ -84,6 +87,7 @@ function App() {
     setMeetingData(meeting)
     setActionItems(meeting.action_items)
     setEmailDraft(null)
+    setSummary(null)
     setAppState('done')
   }
 
@@ -167,6 +171,8 @@ function App() {
                     : ''}
                 </p>
               </div>
+              
+              {summary && <SummaryCard summary={summary} />}
 
               <ActionItemList
                 items={actionItems}
