@@ -2,7 +2,15 @@
 
 > AI-powered meeting assistant that extracts action items, generates summaries, and drafts follow-up emails from any meeting transcript — built with a 4-agent CrewAI pipeline and GPT-4o.
 
-![MeetingAI Demo](docs/screenshot.png)
+## Screenshots
+
+| Landing page | Processing screen |
+|---|---|
+| ![Landing](docs/1.png) | ![Processing](docs/2.png) |
+
+| Summary tab | Action items | Follow-up draft |
+|---|---|---|
+| ![Summary](docs/3.png) | ![Actions](docs/4.png) | ![Email](docs/5.png) |
 
 ---
 
