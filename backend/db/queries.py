@@ -61,3 +61,15 @@ def delete_meeting(db: Session, meeting_id: int):
         MeetingModel.id == meeting_id
     ).delete()
     db.commit()
+
+def create_meeting(db: Session, title: str, transcript: str, summary: str = None) -> MeetingModel:
+    meeting = MeetingModel(
+        title=title,
+        transcript=transcript,
+        summary=summary,
+        created_at=datetime.utcnow()
+    )
+    db.add(meeting)
+    db.commit()
+    db.refresh(meeting)
+    return meeting

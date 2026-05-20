@@ -40,3 +40,12 @@ def get_db():
         yield db
     finally:
         db.close()
+
+class MeetingModel(Base):
+    __tablename__ = "meetings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    transcript = Column(Text, nullable=False)
+    summary = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

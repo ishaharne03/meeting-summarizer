@@ -38,10 +38,15 @@ def process_meeting(meeting: MeetingCreate, db: Session = Depends(get_db)):
     title = result.get("title", "Untitled Meeting")
 
     summary = run_summarizer(meeting.transcript)
+    summary_json = json.dumps(summary)
 
-    db_meeting = queries.create_meeting(db, title=title, transcript=meeting.transcript)
+    db_meeting = queries.create_meeting(
+        db,
+        title=title,
+        transcript=meeting.transcript,
+        summary=summary_json
+    )
     db_items = queries.create_action_items(db, meeting_id=db_meeting.id, items=action_items_data)
-
     email_draft = run_email_drafter(action_items_data)
 
     return {
@@ -71,7 +76,16 @@ def get_meetings(db: Session = Depends(get_db)):
             "id": m.id,
             "title": m.title,
             "created_at": m.created_at.isoformat(),
-            "action_items": queries.get_action_items_by_meeting(db, m.id)
+            "summary": json.loads(m.summary) if m.summary else None,
+            "action_items": [
+                {
+                    "id": i.id,
+                    "text": i.text,
+                    "assignee": i.assignee,
+                    "status": i.status,
+                }
+                for i in queries.get_action_items_by_meeting(db, m.id)
+            ]
         }
         for m in meetings
     ]
@@ -154,4 +168,24 @@ def remind_all(meeting_id: int, db: Session = Depends(get_db)):
     return {
         "subject": f"Reminder: Outstanding action items — {meeting.title}",
         "body": "\n".join(body_lines)
-    }    
+    }
+
+@app.post("/action-items")
+def add_action_item(
+    meeting_id: int,
+    text: str,
+    assignee: str = None,
+    db: Session = Depends(get_db)
+):
+    items = queries.create_action_items(
+        db,
+        meeting_id=meeting_id,
+        items=[{"text": text, "assignee": assignee}]
+    )
+    item = items[0]
+    return {
+        "id": item.id,
+        "text": item.text,
+        "assignee": item.assignee,
+        "status": item.status
+    }
