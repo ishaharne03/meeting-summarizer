@@ -82,41 +82,64 @@ function App() {
   }
 
   const handleActionItemUpdate = async (id, updates) => {
-    try {
-      const params = new URLSearchParams(updates).toString()
-      const res = await fetch(`http://localhost:8000/action-items/${id}?${params}`, {
-        method: 'PATCH',
-      })
-      const updated = await res.json()
-      setActionItems(prev =>
-        prev.map(item => item.id === updated.id ? updated : item)
-      )
-      if (updates.status) {
-        showToast(
-          updates.status === 'done' ? 'Marked as done' : 'Marked as pending',
-          'info'
-        )
-      }
-    } catch (err) {
-      showToast('Failed to update item', 'error')
+  try {
+    const params = new URLSearchParams(updates).toString()
+    const res = await fetch(`http://localhost:8000/action-items/${id}?${params}`, {
+      method: 'PATCH',
+    })
+    const updated = await res.json()
+
+    const newItems = actionItems.map(item =>
+      item.id === updated.id ? updated : item
+    )
+    setActionItems(newItems)
+
+    if (meetingData?.id) {
+      setMeetings(prev => prev.map(m => {
+        if (m.id !== meetingData.id) return m
+        return {
+          ...m,
+          action_items: newItems
+        }
+      }))
     }
+
+    if (updates.status) {
+      showToast(
+        updates.status === 'done' ? 'Marked as done' : 'Marked as pending',
+        'info'
+      )
+    }
+  } catch (err) {
+    showToast('Failed to update item', 'error')
   }
+}
 
   const handleAddItem = async (text, assignee) => {
-    if (!meetingData?.id) return
-    try {
-      const params = new URLSearchParams({ meeting_id: meetingData.id, text })
-      if (assignee) params.append('assignee', assignee)
-      const res = await fetch(`http://localhost:8000/action-items?${params.toString()}`, {
-        method: 'POST'
-      })
-      const newItem = await res.json()
-      setActionItems(prev => [...prev, newItem])
-      showToast('Action item added')
-    } catch (err) {
-      showToast('Failed to add item', 'error')
-    }
+  if (!meetingData?.id) return
+  try {
+    const params = new URLSearchParams({ meeting_id: meetingData.id, text })
+    if (assignee) params.append('assignee', assignee)
+    const res = await fetch(`http://localhost:8000/action-items?${params.toString()}`, {
+      method: 'POST'
+    })
+    const newItem = await res.json()
+    const newItems = [...actionItems, newItem]
+    setActionItems(newItems)
+
+    setMeetings(prev => prev.map(m => {
+      if (m.id !== meetingData.id) return m
+      return {
+        ...m,
+        action_items: newItems
+      }
+    }))
+
+    showToast('Action item added')
+  } catch (err) {
+    showToast('Failed to add item', 'error')
   }
+}
 
   const handleMeetingSelect = (meeting) => {
     setMeetingData(meeting)
