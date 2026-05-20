@@ -116,3 +116,42 @@ def send_reminder(meeting_id: int, assignee: str, db: Session = Depends(get_db))
     )
     
     return email
+
+@app.delete("/meetings/{meeting_id}")
+def delete_meeting(meeting_id: int, db: Session = Depends(get_db)):
+    meeting = queries.get_meeting_by_id(db, meeting_id)
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    queries.delete_meeting(db, meeting_id)
+    return {"success": True}
+
+@app.post("/meetings/{meeting_id}/remind-all")
+def remind_all(meeting_id: int, db: Session = Depends(get_db)):
+    meeting = queries.get_meeting_by_id(db, meeting_id)
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    items = queries.get_action_items_by_meeting(db, meeting_id)
+    pending = [i for i in items if i.status == "pending"]
+    
+    if not pending:
+        raise HTTPException(status_code=404, detail="No pending action items found")
+    
+    from collections import defaultdict
+    grouped = defaultdict(list)
+    for item in pending:
+        assignee = item.assignee if item.assignee and item.assignee != "null" else "Unassigned"
+        grouped[assignee].append(item.text)
+    
+    body_lines = [f"Hi team,\n\nHere's a reminder of all outstanding action items from our meeting: {meeting.title}\n"]
+    for assignee, tasks in grouped.items():
+        body_lines.append(f"{assignee}:")
+        for task in tasks:
+            body_lines.append(f"  - {task}")
+        body_lines.append("")
+    body_lines.append("Please complete your tasks at your earliest convenience.\n\nThanks")
+    
+    return {
+        "subject": f"Reminder: Outstanding action items — {meeting.title}",
+        "body": "\n".join(body_lines)
+    }    

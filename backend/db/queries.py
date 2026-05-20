@@ -52,3 +52,12 @@ def update_action_item(db: Session, item_id: int, text: str = None, status: str 
     db.commit()
     db.refresh(item)
     return item
+
+def delete_meeting(db: Session, meeting_id: int):
+    db.query(ActionItemModel).filter(
+        ActionItemModel.meeting_id == meeting_id
+    ).delete()
+    db.query(MeetingModel).filter(
+        MeetingModel.id == meeting_id
+    ).delete()
+    db.commit()
