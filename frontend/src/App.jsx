@@ -406,44 +406,76 @@ function App() {
               )}
 
               {activeTab === 'Follow-up Draft' && emailDraft && (
-                <EmailPreview
-                  draft={emailDraft}
-                  onCopy={() => showToast('Email copied to clipboard')}
-                />
-              )}
+  <EmailPreview
+    draft={emailDraft}
+    meetingId={meetingData?.id}
+    onCopy={() => showToast('Email copied to clipboard')}
+    onExport={handleExport}
+  />
+)}
 
               {activeTab === 'Follow-up Draft' && !emailDraft && (
-                <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
-                  <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-2xl">
-                    ✉️
-                  </div>
-                  <div>
-                    <p className="text-slate-600 font-medium text-sm">
-                      No follow-up draft for this meeting
-                    </p>
-                    <p className="text-slate-400 text-xs mt-1 max-w-xs leading-relaxed">
-                      Follow-up drafts are generated when you process a new transcript.
-                      You can still send reminders to all assignees below.
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleRemindAll}
-                    disabled={remindAllState !== 'idle'}
-                    className="flex items-center gap-1.5 text-xs px-4 py-2 rounded-lg font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors disabled:opacity-60"
-                  >
-                    {remindAllState === 'loading' && (
-                      <span className="w-3 h-3 border border-amber-400 border-t-transparent rounded-full animate-spin" />
-                    )}
-                    {remindAllState === 'sent'
-                      ? '✓ Reminders ready'
-                      : '✉ Send reminders to all assignees'
-                    }
-                  </button>
-                  <p className="text-xs text-slate-400">
-                    Reminds everyone with incomplete action items
-                  </p>
-                </div>
-              )}
+  <div className="bg-white rounded-xl border border-slate-200 overflow-hidden animate-slide-up">
+    <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+      <h3 className="text-sm font-semibold text-slate-700">Follow-up Draft</h3>
+    </div>
+    <div className="px-4 py-3 bg-amber-50 border-b border-amber-100 flex items-start gap-2">
+      <span className="text-amber-500 text-sm flex-shrink-0 mt-0.5">ℹ</span>
+      <p className="text-xs text-amber-700 leading-relaxed">
+        No draft was generated for this meeting yet. Click <strong>Generate draft</strong> to create one based on the current action items.
+      </p>
+    </div>
+    <div className="p-8 flex flex-col items-center gap-4">
+      <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-2xl">
+        ✉️
+      </div>
+      <div className="text-center">
+        <p className="text-slate-600 font-medium text-sm">No follow-up draft yet</p>
+        <p className="text-slate-400 text-xs mt-1 max-w-xs leading-relaxed">
+          Generate a draft based on the current action items and meeting summary.
+        </p>
+      </div>
+      <div className="flex gap-3">
+        <button
+          onClick={async () => {
+            if (!meetingData?.id) return
+            setRemindAllState('loading')
+            try {
+              const res = await fetch(
+                `http://localhost:8000/meetings/${meetingData.id}/regenerate-email`,
+                { method: 'POST' }
+              )
+              const data = await res.json()
+              setEmailDraft(data)
+              showToast('Follow-up draft generated')
+            } catch (err) {
+              showToast('Failed to generate draft', 'error')
+            } finally {
+              setRemindAllState('idle')
+            }
+          }}
+          disabled={remindAllState !== 'idle'}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+        >
+          {remindAllState === 'loading' ? (
+            <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : '✉'}
+          Generate draft
+        </button>
+        <button
+          onClick={handleRemindAll}
+          disabled={remindAllState !== 'idle'}
+          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 rounded-lg transition-colors disabled:opacity-60"
+        >
+          {remindAllState === 'loading' ? (
+            <span className="w-3 h-3 border border-amber-400 border-t-transparent rounded-full animate-spin" />
+          ) : '✉'}
+          Remind all
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
             </div>
           )}
