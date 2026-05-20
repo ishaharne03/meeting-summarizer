@@ -47,7 +47,7 @@ def process_meeting(meeting: MeetingCreate, db: Session = Depends(get_db)):
         summary=summary_json
     )
     db_items = queries.create_action_items(db, meeting_id=db_meeting.id, items=action_items_data)
-    email_draft = run_email_drafter(action_items_data)
+    email_draft = run_email_drafter(action_items_data, summary)
 
     return {
         "meeting": {
@@ -198,3 +198,24 @@ def add_action_item(
         "assignee": item.assignee,
         "status": item.status
     }
+
+@app.post("/meetings/{meeting_id}/regenerate-email")
+def regenerate_email(meeting_id: int, db: Session = Depends(get_db)):
+    meeting = queries.get_meeting_by_id(db, meeting_id)
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    items = queries.get_action_items_by_meeting(db, meeting_id)
+    items_data = [
+        {
+            "text": i.text,
+            "assignee": i.assignee,
+            "status": i.status
+        }
+        for i in items
+    ]
+
+    summary = json.loads(meeting.summary) if meeting.summary else None
+    email_draft = run_email_drafter(items_data, summary)
+
+    return email_draft
