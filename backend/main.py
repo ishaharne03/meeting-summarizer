@@ -8,6 +8,9 @@ from agents.extractor import run_extractor
 from agents.email_drafter import run_email_drafter
 from agents.summarizer import run_summarizer
 from agents.reminder_drafter import run_reminder_drafter
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 import json
 
 app = FastAPI(title="Meeting Summarizer API")
@@ -19,6 +22,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# API routes are defined above this point
+# Frontend static files served below
+
+if os.path.exists("static"):
+    app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
+
+@app.get("/", include_in_schema=False)
+async def serve_root():
+    return FileResponse("static/index.html")
+
+@app.get("/favicon.svg", include_in_schema=False)
+async def serve_favicon():
+    return FileResponse("static/favicon.svg")
 
 @app.on_event("startup")
 def startup():

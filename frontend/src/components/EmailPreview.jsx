@@ -28,7 +28,7 @@ function EmailPreview({ draft, onCopy, meetingId, onExport }) {
     setRegenerating(true)
     try {
       const res = await fetch(
-        `http://localhost:8000/meetings/${meetingId}/regenerate-email`,
+        `/meetings/${meetingId}/regenerate-email`,
         { method: 'POST' }
       )
       const data = await res.json()

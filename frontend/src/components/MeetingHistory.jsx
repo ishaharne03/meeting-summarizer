@@ -16,20 +16,26 @@ function MeetingHistory({ meetings, onSelect, activeMeetingId, onDelete }) {
     return { done, total: items.length }
   }
 
-  const handleDelete = async (e, meetingId) => {
-    e.stopPropagation()
-    setDeletingId(meetingId)
-    try {
-      await fetch(`http://localhost:8000/meetings/${meetingId}`, {
-        method: 'DELETE'
-      })
-      onDelete(meetingId)
-    } catch (err) {
-      console.error('Failed to delete meeting:', err)
-    } finally {
-      setDeletingId(null)
+const handleDelete = async (e, meetingId) => {
+  e.stopPropagation()
+  if (!window.confirm('Delete this meeting? This cannot be undone.')) return
+  setDeletingId(meetingId)
+  try {
+    const res = await fetch(`/meetings/${meetingId}`, {
+      method: 'DELETE'
+    })
+    if (!res.ok) {
+      const err = await res.json()
+      alert(`Failed to delete: ${err.detail}`)
+      return
     }
+    onDelete(meetingId)
+  } catch (err) {
+    alert('Failed to delete meeting')
+  } finally {
+    setDeletingId(null)
   }
+}
 
   return (
     <div className="flex-1 overflow-y-auto px-3 pb-4">

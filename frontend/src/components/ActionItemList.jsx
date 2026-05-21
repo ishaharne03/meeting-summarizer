@@ -56,7 +56,7 @@ function ActionItemList({ items, onUpdate, meetingId, onAddItem }) {
     setRemindStates(prev => ({ ...prev, [assignee]: 'loading' }))
     try {
       const res = await fetch(
-        `http://localhost:8000/meetings/${meetingId}/remind/${encodeURIComponent(assignee)}`,
+        `/meetings/${meetingId}/remind/${encodeURIComponent(assignee)}`,
         { method: 'POST' }
       )
       if (!res.ok) {

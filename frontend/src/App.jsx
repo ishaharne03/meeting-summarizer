@@ -46,19 +46,20 @@ function App() {
   const showToast = (message, type = 'success') => setToast({ message, type })
 
   const fetchMeetings = async () => {
-    try {
-      const res = await fetch('http://localhost:8000/meetings')
-      const data = await res.json()
-      setMeetings(data)
-    } catch (err) {
-      console.error('Failed to fetch meetings:', err)
-    }
+  try {
+    const res = await fetch('/meetings')
+    const data = await res.json()
+    setMeetings(Array.isArray(data) ? data : [])
+  } catch (err) {
+    console.error('Failed to fetch meetings:', err)
+    setMeetings([])
   }
+}
 
   const handleTranscriptSubmit = async (transcript) => {
     setAppState('loading')
     try {
-      const res = await fetch('http://localhost:8000/meetings/process', {
+      const res = await fetch('/meetings/process', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transcript })
@@ -84,7 +85,7 @@ function App() {
   const handleActionItemUpdate = async (id, updates) => {
   try {
     const params = new URLSearchParams(updates).toString()
-    const res = await fetch(`http://localhost:8000/action-items/${id}?${params}`, {
+    const res = await fetch(`/action-items/${id}?${params}`, {
       method: 'PATCH',
     })
     const updated = await res.json()
@@ -120,7 +121,7 @@ function App() {
   try {
     const params = new URLSearchParams({ meeting_id: meetingData.id, text })
     if (assignee) params.append('assignee', assignee)
-    const res = await fetch(`http://localhost:8000/action-items?${params.toString()}`, {
+    const res = await fetch(`/action-items?${params.toString()}`, {
       method: 'POST'
     })
     const newItem = await res.json()
@@ -151,24 +152,30 @@ function App() {
     setRemindAllState('idle')
   }
 
-  const handleDelete = (meetingId) => {
-    setMeetings(prev => prev.filter(m => m.id !== meetingId))
-    if (meetingData?.id === meetingId) {
-      setAppState('idle')
-      setMeetingData(null)
-      setActionItems([])
-      setEmailDraft(null)
-      setSummary(null)
-    }
+ const handleDelete = (meetingId) => {
+  setMeetings(prev => prev.filter(m => m.id !== meetingId))
+
+  if (meetingData?.id === meetingId) {
+    setAppState('idle')
+    setMeetingData(null)
+    setActionItems([])
+    setEmailDraft(null)
+    setSummary(null)
+    setTypedTitle('')
+    setTitleDone(false)
+    setRemindAllState('idle')
+    showToast('Meeting deleted — you were viewing this meeting', 'info')
+  } else {
     showToast('Meeting deleted', 'info')
   }
+}
 
   const handleRemindAll = async () => {
     if (!meetingData?.id) return
     setRemindAllState('loading')
     try {
       const res = await fetch(
-        `http://localhost:8000/meetings/${meetingData.id}/remind-all`,
+        `/meetings/${meetingData.id}/remind-all`,
         { method: 'POST' }
       )
       if (!res.ok) {
@@ -442,7 +449,7 @@ function App() {
             setRemindAllState('loading')
             try {
               const res = await fetch(
-                `http://localhost:8000/meetings/${meetingData.id}/regenerate-email`,
+                `/meetings/${meetingData.id}/regenerate-email`,
                 { method: 'POST' }
               )
               const data = await res.json()
