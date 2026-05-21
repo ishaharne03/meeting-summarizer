@@ -211,7 +211,7 @@ A sample transcript is included at `tests/sample_transcript.txt` for immediate t
 
 ## Live demo
 
-🔗 [Live on AWS EC2](#) ← URL added after deployment
+🔗 [Live on AWS EC2](http://44.193.203.168/) ← URL added after deployment
 
 ---
 
